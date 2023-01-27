@@ -22,6 +22,7 @@ class Slidable extends StatefulWidget {
     this.groupTag,
     this.enabled = true,
     this.closeOnScroll = true,
+    this.actionpaneClipRect = true,
     this.startActionPane,
     this.endActionPane,
     this.direction = Axis.horizontal,
@@ -96,6 +97,13 @@ class Slidable extends StatefulWidget {
   ///  * [DragGestureRecognizer.dragStartBehavior], which gives an example for the different behaviors.
   final DragStartBehavior dragStartBehavior;
 
+  /// Whether the actions pane should be constraint into a [ClipRect].
+  ///
+  /// This is useful if you want overflow your ActionPane widget under your child
+  ///
+  /// Defaults to true.
+  final bool actionpaneClipRect;
+
   /// The widget below this widget in the tree.
   ///
   /// {@macro flutter.widgets.ProxyWidget.child}
@@ -115,15 +123,13 @@ class Slidable extends StatefulWidget {
   /// ```
   /// {@end-tool}
   static SlidableController? of(BuildContext context) {
-    final scope = context
-        .getElementForInheritedWidgetOfExactType<_SlidableControllerScope>()
-        ?.widget as _SlidableControllerScope?;
+    final scope = context.getElementForInheritedWidgetOfExactType<_SlidableControllerScope>()?.widget
+        as _SlidableControllerScope?;
     return scope?.controller;
   }
 }
 
-class _SlidableState extends State<Slidable>
-    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _SlidableState extends State<Slidable> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late final SlidableController controller;
   late Animation<Offset> moveAnimation;
   late bool keepPanesOrder;
@@ -134,8 +140,7 @@ class _SlidableState extends State<Slidable>
   @override
   void initState() {
     super.initState();
-    controller = SlidableController(this)
-      ..actionPaneType.addListener(handleActionPanelTypeChanged);
+    controller = SlidableController(this)..actionPaneType.addListener(handleActionPanelTypeChanged);
   }
 
   @override
@@ -172,9 +177,8 @@ class _SlidableState extends State<Slidable>
 
   void updateIsLeftToRight() {
     final textDirection = Directionality.of(context);
-    controller.isLeftToRight = widget.direction == Axis.vertical ||
-        !widget.useTextDirection ||
-        textDirection == TextDirection.ltr;
+    controller.isLeftToRight =
+        widget.direction == Axis.vertical || !widget.useTextDirection || textDirection == TextDirection.ltr;
   }
 
   void handleActionPanelTypeChanged() {
@@ -194,9 +198,7 @@ class _SlidableState extends State<Slidable>
     moveAnimation = controller.animation.drive(
       Tween<Offset>(
         begin: Offset.zero,
-        end: widget.direction == Axis.horizontal
-            ? Offset(end, 0)
-            : Offset(0, end),
+        end: widget.direction == Axis.horizontal ? Offset(end, 0) : Offset(0, end),
       ),
     );
   }
@@ -242,10 +244,13 @@ class _SlidableState extends State<Slidable>
         if (actionPane != null)
           Positioned.fill(
             child: ClipRect(
-              clipper: _SlidableClipper(
-                axis: widget.direction,
-                controller: controller,
-              ),
+              clipBehavior: Clip.none,
+              clipper: widget.actionpaneClipRect
+                  ? _SlidableClipper(
+                      axis: widget.direction,
+                      controller: controller,
+                    )
+                  : null,
               child: actionPane,
             ),
           ),
@@ -270,8 +275,7 @@ class _SlidableState extends State<Slidable>
             child: ActionPaneConfiguration(
               alignment: actionPaneAlignment,
               direction: widget.direction,
-              isStartActionPane:
-                  controller.actionPaneType.value == ActionPaneType.start,
+              isStartActionPane: controller.actionPaneType.value == ActionPaneType.start,
               child: _SlidableControllerScope(
                 controller: controller,
                 child: content,
@@ -314,7 +318,7 @@ class _SlidableClipper extends CustomClipper<Rect> {
       case Axis.horizontal:
         final double offset = controller.ratio * size.width;
         if (offset < 0) {
-          return Rect.fromLTRB(size.width + offset, 0, size.width, size.height);
+          return Rect.fromLTRB(size.width + offset, 0, size.width + size.width, size.height);
         }
         return Rect.fromLTRB(0, 0, offset, size.height);
       case Axis.vertical:
