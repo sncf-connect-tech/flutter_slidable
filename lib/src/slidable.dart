@@ -22,7 +22,7 @@ class Slidable extends StatefulWidget {
     this.groupTag,
     this.enabled = true,
     this.closeOnScroll = true,
-    this.actionpaneClipRect = true,
+    this.actionPaneClipBehavior = Clip.hardEdge,
     this.startActionPane,
     this.endActionPane,
     this.direction = Axis.horizontal,
@@ -102,7 +102,7 @@ class Slidable extends StatefulWidget {
   /// This is useful if you want overflow your ActionPane widget under your child
   ///
   /// Defaults to true.
-  final bool actionpaneClipRect;
+  final Clip actionPaneClipBehavior;
 
   /// The widget below this widget in the tree.
   ///
@@ -244,13 +244,11 @@ class _SlidableState extends State<Slidable> with TickerProviderStateMixin, Auto
         if (actionPane != null)
           Positioned.fill(
             child: ClipRect(
-              clipBehavior: Clip.none,
-              clipper: widget.actionpaneClipRect
-                  ? _SlidableClipper(
-                      axis: widget.direction,
-                      controller: controller,
-                    )
-                  : null,
+              clipBehavior: widget.actionPaneClipBehavior,
+              clipper: _SlidableClipper(
+                axis: widget.direction,
+                controller: controller,
+              ),
               child: actionPane,
             ),
           ),
